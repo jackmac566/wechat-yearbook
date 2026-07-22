@@ -45,7 +45,7 @@ assert.equal(wire[FuseV1Options.EnableEmbeddedAsarIntegrityValidation], enabled,
 assert.equal(wire[FuseV1Options.OnlyLoadAppFromAsar], enabled, "未限制为只从 ASAR 加载");
 assert.equal(wire[FuseV1Options.GrantFileProtocolExtraPrivileges], disabled, "file:// 额外权限未关闭");
 
-const entries = listPackage(packaged.asar);
+const entries = listPackage(packaged.asar).map((entry) => entry.split(path.sep).join("/"));
 for (const required of ["/dist/index.html", "/electron/main.cjs", "/electron/security.cjs", "/package.json"]) {
   assert.ok(entries.includes(required), `安装包缺少 ${required}`);
 }
