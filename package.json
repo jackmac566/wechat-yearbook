@@ -15,8 +15,8 @@
     "verify:release": "node scripts/verify-release.mjs",
     "check": "npm test && npm run verify:release && npm run build",
     "pack:dir": "npm run build && electron-builder --dir",
-    "dist:mac": "npm run build && electron-builder --mac dmg zip",
-    "dist:win": "npm run build && electron-builder --win nsis zip"
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish=never",
+    "dist:win": "npm run build && electron-builder --win nsis zip --publish=never"
   },
   "dependencies": {
     "react": "19.2.7",
