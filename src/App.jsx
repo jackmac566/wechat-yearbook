@@ -38,8 +38,31 @@ const emptyDataset = {
   source: "尚未导入",
   messages: [], payments: [], moments: [],
   confidence: { messages: "missing", payments: "missing", moments: "missing" },
+  coverageRanges: { messages: [], payments: [], moments: [] },
+  diagnostics: [],
   warnings: [],
 };
+
+const supportedFile = (file) => /\.(csv|json|txt)$/i.test(file.name || "");
+const displayFileName = (file) => file.webkitRelativePath || file.name;
+
+async function parseFileLocally(file) {
+  const name = displayFileName(file);
+  if (typeof Worker === "undefined") return parseImport(name, await file.text());
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("./workers/import.worker.js", import.meta.url), { type: "module" });
+    worker.onmessage = ({ data }) => {
+      worker.terminate();
+      if (data.ok) resolve(data.dataset);
+      else reject(new Error(data.error));
+    };
+    worker.onerror = (event) => {
+      worker.terminate();
+      reject(new Error(event.message || "本地解析线程启动失败"));
+    };
+    worker.postMessage({ name, file });
+  });
+}
 
 function App() {
   const [dataset, setDataset] = useState(emptyDataset);
@@ -49,34 +72,53 @@ function App() {
   const [showImport, setShowImport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [notice, setNotice] = useState("");
+  const [importProgress, setImportProgress] = useState(null);
   const fileRef = useRef(null);
+  const folderRef = useRef(null);
   const stats = useMemo(() => analyze(dataset, year), [dataset, year]);
   const quality = useMemo(() => coverage(dataset, year), [dataset, year]);
-  const hasData = dataset.messages.length + dataset.payments.length + dataset.moments.length > 0;
+  const hasData = dataset.messages.length + dataset.payments.length + dataset.moments.length > 0 || (dataset.diagnostics?.length || 0) > 0;
   const isDemo = dataset.source === "演示数据";
 
   const handleFiles = async (files) => {
     if (!files?.length) return;
+    const selected = [...files];
+    const supported = selected.filter(supportedFile);
+    const ignored = selected.length - supported.length;
+    if (!supported.length) {
+      window.alert("没有找到可分析的 CSV、JSON 或 TXT 文件。文件夹里的图片、视频和数据库文件不会被读取。");
+      return;
+    }
+    const largeFiles = supported.filter((file) => file.size >= 50 * 1024 * 1024);
+    if (largeFiles.length && !window.confirm(`发现 ${largeFiles.length} 个超过 50 MB 的文件。应用会在本机后台解析，期间可能占用较多内存，但不会上传。继续吗？`)) return;
     let next = !hasData || isDemo ? { ...emptyDataset, source: "" } : dataset;
     const failures = [];
-    for (const file of files) {
+    let imported = 0;
+    for (const [index, file] of supported.entries()) {
+      setImportProgress({ current: index + 1, total: supported.length, name: displayFileName(file) });
       try {
-        const parsed = parseImport(file.name, await file.text());
+        const parsed = await parseFileLocally(file);
         next = next.source ? mergeDatasets(next, parsed) : parsed;
+        imported += 1;
       } catch (error) {
-        failures.push(`${file.name}：${error.message}`);
+        failures.push(`${displayFileName(file)}：${error.message}`);
       }
     }
-    if (next.source) {
+    setImportProgress(null);
+    if (imported > 0 && next.source) {
       setDataset(next);
       const nextYears = availableYears(next);
       if (nextYears.length) setYear(nextYears[0]);
       setActive("story");
-      setNotice(`已在本机读取 ${files.length - failures.length} 个文件${failures.length ? `；${failures.length} 个未识别` : ""}`);
+      setNotice(`已在本机读取 ${imported} 个文件${failures.length ? `；${failures.length} 个未识别` : ""}${ignored ? `；忽略 ${ignored} 个非数据文件` : ""}`);
       setShowImport(false);
       window.setTimeout(() => setNotice(""), 4500);
     }
-    if (failures.length) window.alert(failures.join("\n"));
+    if (failures.length) {
+      const visibleFailures = failures.slice(0, 20);
+      if (failures.length > visibleFailures.length) visibleFailures.push(`……另有 ${failures.length - visibleFailures.length} 个文件未识别，请缩小文件夹范围后重试。`);
+      window.alert(visibleFailures.join("\n"));
+    }
   };
 
   const go = (key) => {
@@ -92,15 +134,17 @@ function App() {
     window.setTimeout(() => setNotice(""), 4500);
   };
 
-  const exportDataset = () => {
+  const exportDataset = (scope = "year") => {
     if (!hasData) return;
-    const confirmed = window.confirm("标准 JSON 会包含联系人和聊天内容，适合自己备份或对接工具，不适合直接公开。继续导出吗？");
+    const exportYear = scope === "year" ? year : null;
+    const label = exportYear ? `${exportYear} 年` : "全部年份";
+    const confirmed = window.confirm(`将导出${label}的原始记录，其中可能包含联系人和聊天内容，只适合自己备份或对接工具，不适合公开。继续吗？`);
     if (!confirmed) return;
-    const blob = new Blob([serializeDataset(dataset)], { type: "application/json;charset=utf-8" });
+    const blob = new Blob([serializeDataset(dataset, exportYear ? { year: exportYear } : {})], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `微信年轮-标准数据-${year}.json`;
+    link.download = exportYear ? `微信年轮-标准数据-${exportYear}.json` : "微信年轮-标准数据-全部年份.json";
     link.click();
     URL.revokeObjectURL(url);
     setNotice("已导出微信年轮标准 JSON，请不要把原始数据公开上传");
@@ -145,9 +189,9 @@ function App() {
       </main>
       </>}
 
-      {showImport && <ImportModal onClose={() => setShowImport(false)} fileRef={fileRef} onFiles={handleFiles} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} fileRef={fileRef} folderRef={folderRef} onFiles={handleFiles} progress={importProgress} />}
       {showShare && <ShareModal stats={stats} quality={quality} onClose={() => setShowShare(false)} />}
-      {notice && <div className="toast"><span>✓</span>{notice}</div>}
+      {notice && <div className="toast" role="status" aria-live="polite"><span>✓</span>{notice}</div>}
     </div>
   );
 }
@@ -175,7 +219,7 @@ function Overview({ stats, quality, onImport }) {
   return <div className="page-grid">
     <section className="hero-card">
       <div className="hero-orbit one" /><div className="hero-orbit two" />
-      <div className="hero-copy"><span className="eyebrow">{stats.year} · YOUR YEAR IN WECHAT</span><h2>这一年，你发出了<br/><strong>{number.format(stats.sent)}</strong> 条消息</h2><p>那些随手发出的“收到”“哈哈哈”和深夜长谈，<br/>拼出了你这一年的社交年轮。</p><div className="hero-pills"><span><b>{stats.activeDays}</b> 个活跃日</span><span>最长连续 <b>{stats.streak}</b> 天</span><span>最常在 <b>{String(stats.peakHour).padStart(2, "0")}:00</b> 出现</span></div></div>
+      <div className="hero-copy"><span className="eyebrow">{stats.year} · YOUR YEAR IN WECHAT</span><h2>这一年，你发出了<br/><strong>{number.format(stats.sent)}</strong> 条消息</h2><p>那些随手发出的“收到”“哈哈哈”和深夜长谈，<br/>拼出了你这一年的社交年轮。</p><div className="hero-pills"><span><b>{stats.activeDays}</b> 个活跃日</span><span>最长连续 <b>{stats.streak}</b> 天</span><span>最常在 <b>{formatHour(stats.peakHour)}</b> 出现</span></div></div>
       <div className="year-ring"><div><span>{stats.year}</span><small>微信年轮</small></div></div>
     </section>
 
@@ -253,13 +297,16 @@ function MoneyPage({ stats, confidence }) {
 function DataPage({ dataset, quality, year, onImport, onExport, onReset }) {
   const [guide, setGuide] = useState("payment");
   const recordCount = dataset.messages.length + dataset.payments.length + dataset.moments.length;
+  const hasImport = recordCount > 0 || (dataset.diagnostics?.length || 0) > 0;
+  const yearCount = (items) => items.filter((item) => item.date?.getFullYear() === Number(year)).length;
   return <div className="detail-grid">
     <section className="privacy-hero"><div><Icon name="shield" size={28} /></div><span><small>LOCAL FIRST · ZERO CLOUD</small><h2>你的微信记录，不该成为别人的数据。</h2><p>所有文件都在当前设备内读取和统计。应用不要求微信密码、不上传原始数据、不接入广告追踪。</p></span></section>
     <section className="panel wide"><PanelHead title="数据来源与可信度" subtitle={`${year} 年 · ${dataset.source}`} /><div className="source-table">
-      <SourceRow name="聊天记录" description="消息、语音、图片、撤回系统记录" level={quality.messages.level} count={dataset.messages.length} />
-      <SourceRow name="微信支付账单" description="红包、转账的笔数与金额" level={quality.payments.level} count={dataset.payments.length} />
-      <SourceRow name="朋友圈记录" description="发表、评论、点赞" level={quality.moments.level} count={dataset.moments.length} />
-    </div><div className="data-actions"><button className="primary-button" onClick={onImport}><Icon name="upload" size={17} />{recordCount ? "继续补充文件" : "查看步骤并导入"}</button>{recordCount > 0 && <button className="ghost-button" onClick={onExport}>导出标准 JSON</button>}{recordCount > 0 && <button className="danger-button" onClick={onReset}>清除本次导入</button>}</div></section>
+      <SourceRow name="聊天记录" description="消息、语音、图片、撤回系统记录" level={quality.messages.level} count={yearCount(dataset.messages)} />
+      <SourceRow name="微信支付账单" description="红包、转账的笔数与金额" level={quality.payments.level} count={yearCount(dataset.payments)} />
+      <SourceRow name="朋友圈记录" description="发表、评论、点赞" level={quality.moments.level} count={yearCount(dataset.moments)} />
+    </div><div className="data-actions"><button className="primary-button" onClick={onImport}><Icon name="upload" size={17} />{hasImport ? "继续补充文件" : "查看步骤并导入"}</button>{recordCount > 0 && <button className="ghost-button export-button" onClick={() => onExport("year")}>仅导出 {year} 年</button>}{recordCount > 0 && <button className="ghost-button export-button" onClick={() => onExport("all")}>导出全部年份</button>}{hasImport && <button className="danger-button" onClick={onReset}>清除本次导入</button>}</div></section>
+    {dataset.diagnostics?.length > 0 && <section className="panel wide import-diagnostics"><PanelHead title="本次导入检查" subtitle="逐个文件显示识别结果，防止悄悄漏读" badge={`${dataset.diagnostics.length} 个文件`} /><div className="diagnostic-list">{dataset.diagnostics.slice(-20).map((item, index) => <div key={`${item.file}-${index}`}><span title={item.file}>{String(item.file).split(/[\\/]/).pop()}</span><b>{number.format(item.parsed)} 条已识别</b><em className={item.skipped ? "warning" : "complete"}>{item.skipped ? `${item.skipped} 条跳过` : "无跳过"}</em></div>)}</div>{dataset.diagnostics.length > 20 && <p>这里只显示最近 20 个文件，共导入 {dataset.diagnostics.length} 个。</p>}{dataset.warnings?.length > 0 && <ul>{dataset.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>}</section>}
     <FileGuide active={guide} onSelect={setGuide} className="wide" />
     <section className="panel"><PanelHead title="支持的字段" subtitle="方便对接开源导出工具" /><div className="schema"><code>messages[]</code><span>time · isSend · type · content · contact · duration</span><code>payments[]</code><span>交易时间 · 交易类型 · 收/支 · 金额(元) · 交易对方</span><code>moments[]</code><span>time · type(post/comment/like) · isOwn · content</span></div></section>
     <AccuracyNote title="重要边界"><p>当前版本不会自动扫描微信进程、提取密钥或破解账号。它只读取你主动选择的导出文件，这让公开发行更安全，也降低微信更新后失效的风险。</p><p>后续读取能力只通过独立适配器接入：仅本人设备、明确授权、全过程本地、无需关闭 SIP、失败可回退。导出的标准 JSON 含原始内容与联系人，请只在自己设备保存。</p></AccuracyNote>
@@ -270,9 +317,9 @@ function FileGuide({ active, onSelect, className = "" }) {
   return <section className={`panel file-guide-panel ${className}`}>
     <PanelHead title="文件从哪里来？" subtitle="按你的设备和目标，先找到正确文件" badge="全程本机" />
     <div className="guide-tabs" role="tablist" aria-label="文件获取方式">
-      <button className={active === "payment" ? "active" : ""} onClick={() => onSelect("payment")}><Icon name="money" size={18} /><span><b>支付账单</b><small>最容易 · 官方 CSV</small></span></button>
-      <button className={active === "chat" ? "active" : ""} onClick={() => onSelect("chat")}><Icon name="chat" size={18} /><span><b>聊天记录</b><small>需电脑导出工具</small></span></button>
-      <button className={active === "moments" ? "active" : ""} onClick={() => onSelect("moments")}><Icon name="moments" size={18} /><span><b>朋友圈</b><small>覆盖可能不完整</small></span></button>
+      <button role="tab" aria-selected={active === "payment"} className={active === "payment" ? "active" : ""} onClick={() => onSelect("payment")}><Icon name="money" size={18} /><span><b>支付账单</b><small>最容易 · 官方 CSV</small></span></button>
+      <button role="tab" aria-selected={active === "chat"} className={active === "chat" ? "active" : ""} onClick={() => onSelect("chat")}><Icon name="chat" size={18} /><span><b>聊天记录</b><small>需电脑导出工具</small></span></button>
+      <button role="tab" aria-selected={active === "moments"} className={active === "moments" ? "active" : ""} onClick={() => onSelect("moments")}><Icon name="moments" size={18} /><span><b>朋友圈</b><small>覆盖可能不完整</small></span></button>
     </div>
     <GuideContent kind={active} />
   </section>;
@@ -295,7 +342,7 @@ function GuideContent({ kind }) {
     <div className="guide-title"><span className="advanced">进阶操作</span><div><h3>先迁移到电脑，再用本地工具导出</h3><p>微信目前没有“导出聊天 CSV / JSON”的官方按钮。</p></div></div>
     <ol>
       <li><b>先备份原记录</b><span>手机与电脑连接同一网络，在手机微信进入「我」→「设置」→「通用」→「聊天记录迁移与备份」→「迁移」→「迁移到电脑」。</span></li>
-      <li><b>先确认系统与版本</b><span><a href="https://github.com/ycccccccy/echotrace" target="_blank" rel="noreferrer">EchoTrace</a> 的官方新手发行版面向 Windows 10+；Mac 不要直接下载 Windows 的 EXE。也可查看 <a href="https://github.com/LifeArchiveProject/WeChatDataAnalysis" target="_blank" rel="noreferrer">WeChatDataAnalysis</a> 当前说明。</span></li>
+      <li><b>先确认系统与版本</b><span><a href="https://github.com/ycccccccy/echotrace" target="_blank" rel="noreferrer">EchoTrace</a> 已在 V5.2.0 公告停止维护且该版本没有安装包，只能作为历史兼容参考；Mac 不要下载 Windows EXE。也可查看 <a href="https://github.com/LifeArchiveProject/WeChatDataAnalysis" target="_blank" rel="noreferrer">WeChatDataAnalysis</a> 当前说明与许可证状态。</span></li>
       <li><b>只在自己的电脑导出</b><span>按开源工具说明读取本人账号数据，优先选择 JSON 或 CSV；不要把密钥、数据库或聊天文件发给陌生人。WeFlow 现有仓库已移除取密钥/解密能力，不把它当成可用导出器。</span></li>
       <li><b>导入结构化结果</b><span>选择 <code>chat.json</code>、<code>messages.json</code> 或聊天记录 <code>.csv</code>。本项目兼容多种 EchoTrace / WeFlow 风格字段和嵌套会话结构，但不承诺所有版本零配置兼容。</span></li>
     </ol>
@@ -317,10 +364,21 @@ function GuideContent({ kind }) {
 function ChangelogPage() {
   const releases = [
     {
+      version: "V0.2.1",
+      date: "2026年7月22日",
+      title: "全记录导入与安全修复版",
+      current: true,
+      summary: "让聊天、账单和朋友圈已有文件真正一起导入，同时修复会造成归零、漏读和跨年导出的准确性问题。",
+      groups: [
+        ["导入", ["支持多选聊天、账单、朋友圈和标准 JSON，并可选择整个导出文件夹", "大文件放入本地后台线程解析，界面显示当前文件与进度", "逐文件展示识别条数、跳过条数和原因提示"]],
+        ["准确", ["修复标准 JSON 重导入后红包、转账统计归零", "修复会话容器时间戳造成内部消息漏读，未知朋友圈归属不再算作本人", "账单按声明日期范围判断全年覆盖，按年份与全部年份分开导出"]],
+        ["安全", ["桌面端使用隔离 app 协议并拒绝任意本地导航、网页嵌入和系统权限", "启用 ASAR 完整性校验与 Electron 安全熔断，移除 Mac 无关权限声明", "发布包附 SHA-256 校验和与 GitHub 构建来源证明，依赖审计归零"]],
+      ],
+    },
+    {
       version: "V0.2.0",
       date: "2026年7月22日",
       title: "双平台开源桌面预览版",
-      current: true,
       summary: "把 EchoTrace 的本地分析与分层服务经验、WeFlow 的兼容性教训，整理成可持续维护的导入优先架构。",
       groups: [
         ["年报", ["默认进入一屏一个结论的沉浸式年报故事", "保留详细总览、聊天、关系、朋友圈与账单页面", "缺少数据时明确标记未导入，不用零值冒充结论"]],
@@ -332,6 +390,7 @@ function ChangelogPage() {
       version: "V0.1.2",
       date: "2026年7月21日",
       title: "真实数据与上传向导",
+      preGithub: true,
       summary: "默认不再自动展示模拟统计，先告诉访客文件从哪里来，再开始分析。",
       groups: [
         ["真实", ["首页默认改为空白数据状态，未导入就不显示统计数字", "演示数据只在用户主动点击后出现，并持续标明为模拟记录", "清除导入后回到空白状态，不再自动恢复演示数据"]],
@@ -343,6 +402,7 @@ function ChangelogPage() {
       version: "V0.1.1",
       date: "2026年7月21日",
       title: "公开发行准备版",
+      preGithub: true,
       summary: "让每一位访客都能看到产品从哪里开始，又是怎样一点点长出来的。",
       groups: [
         ["新增", ["增加全访客可见的独立更新日志", "侧边栏常驻当前版本入口", "更新离线缓存版本，确保访客及时获得新版"]],
@@ -353,6 +413,7 @@ function ChangelogPage() {
       version: "V0.1.0",
       date: "2026年7月21日",
       title: "首个可用体验版",
+      preGithub: true,
       summary: "微信年轮的第一个真实版本。从一份演示数据开始，把容易被忽略的微信小事变成年度档案。",
       groups: [
         ["核心", ["年度消息、活跃日、连续活跃与聊天时段分析", "文字、图片、语音、视频、表情、文件、链接与拍一拍分类", "联系人和群聊发送热度排行"]],
@@ -363,10 +424,10 @@ function ChangelogPage() {
   ];
 
   return <div className="changelog-page">
-    <section className="changelog-hero"><span>CHANGELOG · BUILD IN PUBLIC</span><h2>每一次认真更新，<br/>都应该留下记录。</h2><p>这里从第一个真实版本开始，公开记录新增能力、体验改进与数据边界。不会从不存在的版本开始，也不会把“计划中”伪装成“已完成”。</p><div><b>4</b><small>已发布版本</small><i /><b>2026.07.21</b><small>首次记录</small></div></section>
+    <section className="changelog-hero"><span>CHANGELOG · BUILD IN PUBLIC</span><h2>每一次认真更新，<br/>都应该留下记录。</h2><p>V0.2.0 起可由 GitHub Release 验证；V0.1.x 是迁入 GitHub 前的产品原型记录，不冒充 Git 标签或公开安装包。</p><div><b>2</b><small>GitHub 发行版本</small><i /><b>3</b><small>发布前原型记录</small></div></section>
     <section className="release-timeline">{releases.map((release) => <article className={`release-card ${release.current ? "current" : ""}`} key={release.version}>
       <div className="release-marker"><i /><span /></div>
-      <div className="release-content"><header><div><span>{release.version}</span>{release.current && <em>当前版本</em>}<time>{release.date}</time></div><h3>{release.title}</h3><p>{release.summary}</p></header>
+      <div className="release-content"><header><div><span>{release.version}</span>{release.current && <em>当前版本</em>}{release.preGithub && <em>GitHub 前原型</em>}<time>{release.date}</time></div><h3>{release.title}</h3><p>{release.summary}</p></header>
         <div className="release-groups">{release.groups.map(([name, items]) => <section key={name}><b>{name}</b><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></section>)}</div>
       </div>
     </article>)}</section>
@@ -374,18 +435,29 @@ function ChangelogPage() {
   </div>;
 }
 
-function ImportModal({ onClose, fileRef, onFiles }) {
+function ImportModal({ onClose, fileRef, folderRef, onFiles, progress }) {
   const [drag, setDrag] = useState(false);
   const [guide, setGuide] = useState("payment");
-  return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className="modal import-modal"><button className="modal-x" onClick={onClose}>×</button><span className="modal-kicker">FIND · EXPORT · IMPORT</span><h2>先找到正确文件，再上传</h2><p className="modal-desc">下面按数据类型写清楚获取路径。你可以从最简单、最准确的微信支付账单开始。</p>
+  const modalRef = useRef(null);
+  React.useEffect(() => {
+    modalRef.current?.focus();
+    const closeOnEscape = (event) => event.key === "Escape" && !progress && onClose();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose, progress]);
+  const chooseFiles = () => !progress && fileRef.current?.click();
+  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !progress && onClose()}><div ref={modalRef} className="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title" tabIndex="-1"><button className="modal-x" onClick={onClose} disabled={Boolean(progress)} aria-label="关闭导入窗口">×</button><span className="modal-kicker">FIND · EXPORT · IMPORT</span><h2 id="import-title">一次导入你已经取得的全部记录</h2><p className="modal-desc">聊天 JSON/CSV、微信支付账单和朋友圈文件可以一起多选或按整个文件夹导入；图片、视频、数据库和其他文件会自动忽略。</p>
+    <div className="all-import-note"><Icon name="data" size={20} /><span><b>不只支持账单</b><small>把不同来源、不同会话、不同月份的 CSV / JSON 一次选中，应用会合并去重并逐个报告漏读情况。</small></span></div>
     <FileGuide active={guide} onSelect={setGuide} />
-    <div className={`drop-zone ${drag ? "drag" : ""}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); onFiles([...e.dataTransfer.files]); }} onClick={() => fileRef.current?.click()}><Icon name="upload" size={26} /><b>已经拿到文件？拖到这里</b><span>或点击选择 CSV / JSON · 支持多选</span><input ref={fileRef} type="file" accept=".csv,.json,.txt" multiple hidden onChange={(e) => onFiles([...e.target.files])} /></div>
+    <div className={`drop-zone ${drag ? "drag" : ""} ${progress ? "busy" : ""}`} role="button" tabIndex={progress ? -1 : 0} aria-disabled={Boolean(progress)} onKeyDown={(event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); chooseFiles(); } }} onDragOver={(event) => { event.preventDefault(); if (!progress) setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(event) => { event.preventDefault(); setDrag(false); if (!progress) onFiles([...event.dataTransfer.files]); }} onClick={chooseFiles}><Icon name="upload" size={26} />{progress ? <><b>正在本机解析 {progress.current} / {progress.total}</b><span title={progress.name}>{progress.name}</span><progress value={progress.current} max={progress.total} /></> : <><b>拖入文件，或点击多选</b><span>CSV / JSON / TXT · 可同时选择聊天、账单、朋友圈</span></>}<input ref={fileRef} type="file" accept=".csv,.json,.txt" multiple hidden onChange={(event) => { onFiles([...event.target.files]); event.target.value = ""; }} /></div>
+    <div className="folder-import"><button className="ghost-button export-button" disabled={Boolean(progress)} onClick={() => folderRef.current?.click()}>选择整个导出文件夹</button><span>会递归读取其中受支持的数据文件</span><input ref={folderRef} type="file" accept=".csv,.json,.txt" multiple webkitdirectory="" directory="" hidden onChange={(event) => { onFiles([...event.target.files]); event.target.value = ""; }} /></div>
     <div className="privacy-line"><Icon name="shield" size={17} />分析在本机完成。关闭应用后，原始文件不会被复制到应用目录。</div>
   </div></div>;
 }
 
 function ShareModal({ stats, quality, onClose }) {
   const canvasRef = useRef(null);
+  const modalRef = useRef(null);
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -402,8 +474,14 @@ function ShareModal({ stats, quality, onClose }) {
     ctx.fillStyle = "#fff"; ctx.font = "700 32px system-ui"; ctx.fillText("微信年轮", 86, 1310); ctx.fillStyle = "rgba(255,255,255,.52)"; ctx.font = "23px system-ui"; ctx.fillText("不上传聊天记录的本地年度报告", 86, 1352);
   };
   React.useEffect(draw, [stats, quality]);
+  React.useEffect(() => {
+    modalRef.current?.focus();
+    const closeOnEscape = (event) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
   const download = () => { draw(); const link = document.createElement("a"); link.download = `微信年轮-${stats.year}.png`; link.href = canvasRef.current.toDataURL("image/png"); link.click(); };
-  return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className="modal share-modal"><button className="modal-x" onClick={onClose}>×</button><div><span className="modal-kicker">SHARE YOUR YEAR</span><h2>一张不泄露隐私的年报卡片</h2><p className="modal-desc">默认隐藏联系人、群名、聊天内容和具体金额，只分享你愿意公开的小数字。</p><ul><li>✓ 不含聊天原文</li><li>✓ 不含联系人姓名</li><li>✓ 不含红包与转账金额</li><li>✓ 图片完全在本机生成</li></ul><button className="primary-button big" onClick={download}>下载 PNG 卡片</button></div><canvas ref={canvasRef} /></div></div>;
+  return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div ref={modalRef} className="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title" tabIndex="-1"><button className="modal-x" onClick={onClose} aria-label="关闭分享窗口">×</button><div><span className="modal-kicker">SHARE YOUR YEAR</span><h2 id="share-title">一张不泄露隐私的年报卡片</h2><p className="modal-desc">默认隐藏联系人、群名、聊天内容和具体金额，只分享你愿意公开的小数字。</p><ul><li>✓ 不含聊天原文</li><li>✓ 不含联系人姓名</li><li>✓ 不含红包与转账金额</li><li>✓ 图片完全在本机生成</li></ul><button className="primary-button big" onClick={download}>下载 PNG 卡片</button></div><canvas ref={canvasRef} aria-label={`${stats.year} 微信年报分享卡片预览`} /></div></div>;
 }
 
 function Metric({ tone, label, value, unit, note, status }) { return <section className={`metric-card ${tone}`}><span className="metric-status">{status}</span><p>{label}</p><h3>{number.format(value)} <small>{unit}</small></h3><div>{note}</div></section>; }
@@ -415,6 +493,7 @@ function MoneyCard({ kind, amount, count, tone }) { return <div className={`mone
 function SourceRow({ name, description, level, count }) { return <div><span><i className={`dot ${level}`} /><b>{name}</b><small>{description}</small></span><em>{number.format(count)} 条记录</em><strong className={level}>{levelText(level)}</strong></div>; }
 function AccuracyNote({ title, children }) { return <section className="accuracy-note wide"><span>i</span><div><b>{title}</b>{children}</div></section>; }
 function levelText(level) { return ({ complete: "完整", partial: "可能不完整", missing: "未导入", out_of_year: "该年无记录" })[level] || "未知"; }
+function formatHour(hour) { return hour === null || hour === undefined ? "暂无" : `${String(hour).padStart(2, "0")}:00`; }
 function dateTime(date) { return date ? date.toLocaleString("zh-CN", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "暂无记录"; }
 function dateShort(date) { return date ? date.toLocaleDateString("zh-CN", { month: "long", day: "numeric" }) : ""; }
 function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }

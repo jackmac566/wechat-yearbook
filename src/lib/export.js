@@ -1,15 +1,26 @@
 import { APP_NAME, APP_VERSION, DATA_SCHEMA_VERSION } from "../version.js";
 
 const iso = (value) => value instanceof Date && !Number.isNaN(value.getTime()) ? value.toISOString() : null;
+const inYear = (item, year) => !year || item.date?.getFullYear() === Number(year);
 
-export function serializeDataset(dataset) {
+const serializeRanges = (coverageRanges = {}, year) => Object.fromEntries(
+  ["messages", "payments", "moments"].map((kind) => [kind, (coverageRanges[kind] || [])
+    .filter((range) => !year || (range.start?.getFullYear() <= Number(year) && range.end?.getFullYear() >= Number(year)))
+    .map((range) => ({ start: iso(range.start), end: iso(range.end), declared: Boolean(range.declared) }))]),
+);
+
+export function serializeDataset(dataset, options = {}) {
+  const year = options.year !== undefined && Number.isInteger(Number(options.year)) ? Number(options.year) : null;
   return JSON.stringify({
     schemaVersion: DATA_SCHEMA_VERSION,
     generator: `${APP_NAME} ${APP_VERSION}`,
     exportedAt: new Date().toISOString(),
+    scope: year ? { type: "year", year } : { type: "all_years" },
     source: dataset.source || "本地导入",
     confidence: dataset.confidence || {},
-    messages: (dataset.messages || []).map((item) => ({
+    coverageRanges: serializeRanges(dataset.coverageRanges, year),
+    warnings: dataset.warnings || [],
+    messages: (dataset.messages || []).filter((item) => inYear(item, year)).map((item) => ({
       id: item.id || "",
       time: iso(item.date),
       isSend: Boolean(item.isSend),
@@ -20,7 +31,7 @@ export function serializeDataset(dataset) {
       isOwnRevoke: Boolean(item.isOwnRevoke),
       deletedMarker: Boolean(item.deletedMarker),
     })),
-    payments: (dataset.payments || []).map((item) => ({
+    payments: (dataset.payments || []).filter((item) => inYear(item, year)).map((item) => ({
       id: item.id || "",
       time: iso(item.date),
       type: item.type || "other",
@@ -30,7 +41,7 @@ export function serializeDataset(dataset) {
       status: item.status || "",
       note: item.note || "",
     })),
-    moments: (dataset.moments || []).map((item) => ({
+    moments: (dataset.moments || []).filter((item) => inYear(item, year)).map((item) => ({
       id: item.id || "",
       time: iso(item.date),
       type: item.kind || "post",

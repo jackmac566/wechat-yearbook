@@ -1,108 +1,132 @@
-# 零成本发布教程（Mac 新手版）
+# 零成本发布与更新教程（Mac 新手版）
 
-目标：把源码公开在 GitHub，并让 GitHub 自动替你生成 Apple 芯片 Mac、Intel Mac 和 Windows 安装包。按照 [GitHub 官方计费说明](https://docs.github.com/billing/managing-billing-for-github-actions/about-billing-for-github-actions)，公开仓库使用标准 GitHub 托管运行器免费；代码签名和自定义域名先不买。
+目标：公开源码，并让 GitHub 自动生成 Apple 芯片 Mac、Intel Mac 和 Windows 安装包。公开仓库使用标准 GitHub 托管运行器通常无需付费；Apple/Windows 商业代码签名仍需费用，所以本项目先用“源码 + 自动构建 + SHA-256 + GitHub 构建证明”建立可验证链路。
 
-## 先认清你要上传的文件
+## 先认清哪些文件绝对不能上传
 
-解压源码包后，项目根目录应看到：
+可以上传源码、文档、测试和示例假数据。绝对不要上传：
 
-- `README.md`：访客进入仓库第一眼看到的介绍
-- `CHANGELOG.md`：公开版本记录
-- `LICENSE`：允许他人使用和修改的 MIT 许可证
-- `package.json`：版本号与构建配置
-- `.github/workflows/`：自动测试和打包流程
-- `src/`、`electron/`：应用源码
+- 真实聊天 JSON/CSV、微信支付账单、朋友圈导出
+- 微信原始数据库、DbKey、登录信息、支付密码
+- 手机号、邮箱验证码、证书私钥、GitHub Token
 
-不能上传：真实聊天 JSON/CSV、微信支付账单、微信数据库、密钥、手机号、邮箱验证码。`.gitignore` 已经拦截一些常见名称，但仍要自己检查一次。
+`.gitignore` 只能挡住常见名称，提交前仍要在 GitHub Desktop 的 Changes 列表逐项看一遍。
 
-## A. 用 GitHub Desktop 发布源码
+## 第一次发布源码
 
-1. 安装 [GitHub Desktop](https://desktop.github.com/) 并登录。
-2. 菜单选择 **File → Add Local Repository**。
-3. 选择解压后的 `wechat-yearbook` 文件夹。
-4. 看到“This directory does not appear to be a Git repository”后，点 **create a repository**。
-5. Name 填 `wechat-yearbook`；Git Ignore 与 License 都选 None，因为项目已经包含这两个文件。
-6. 点 **Create Repository**。
-7. 在左下角 Summary 填 `Release v0.2.0`，Description 可填 `First public desktop source release`。
-8. 点 **Commit to main**。这是你的第一条真实 Git 记录。
-9. 点上方 **Publish repository**，取消 **Keep this code private**，再确认发布。
+如果仓库已经由 Work Buddy 或 GitHub Desktop 发布成功，可以跳到“发布 V0.2.1 安装包”。
 
-如果你在 GitHub 网页看到 README 和文件列表，源码发布成功。
+1. 用 GitHub Desktop 登录，选择 **File → Add Local Repository**，添加项目文件夹。
+2. 如果提示还不是仓库，点 **create a repository**。Git Ignore 和 License 都选 None，因为项目已经包含。
+3. Summary 填真实内容，例如 `Prepare v0.2.1 security and import fixes`。
+4. 点 **Commit to main**，再点 **Publish repository** 或 **Push origin**。
+5. 公开仓库应能看到 `README.md`、`CHANGELOG.md`、`LICENSE`、`.github/workflows/`、`src/` 和 `electron/`。
 
-## B. 允许自动流程上传安装包
+V0.2.0 起才有可由 GitHub Release/标签验证的发行记录。V0.1.x 只作为迁入 GitHub 前的原型记录保留，不要补造旧 Git 标签或提交。
 
-1. 在仓库网页点 **Settings**。
-2. 左侧点 **Actions → General**。
-3. 找到 **Workflow permissions**。
-4. 选择 **Read and write permissions**，点 Save。
+## 一次性打开安全发布设置
 
-这个权限只让仓库自己的发布流程把构建结果放进 Release，不会读取用户微信数据。
+在仓库网页完成：
 
-## C. 创建 V0.2.0 Release
+1. **Settings → Actions → General → Workflow permissions**，选择 **Read and write permissions** 并保存。工作流自身仍按任务使用最小权限。
+2. **Settings → General**，滚到 **Releases**，勾选 **Enable release immutability**。它只保护以后发布的版本；官方说明见 [Immutable releases](https://docs.github.com/code-security/concepts/supply-chain-security/immutable-releases)。
+3. **Settings → Security → Code security and analysis**，打开 **Private vulnerability reporting**（如果页面提供）。这样安全问题可先私下报告，不必公开聊天数据或漏洞细节。
+4. 确认仓库仍为 Public；GitHub Free 的构建来源证明用于公开仓库。
 
-1. 仓库首页右侧点 **Releases**，再点 **Draft a new release**。
-2. 点 **Choose a tag**，输入 `v0.2.0`。
-3. 选择 **Create new tag: v0.2.0 on publish**。
-4. Release title 填 `微信年轮 V0.2.0`。
-5. 打开源码中的 `RELEASE_NOTES_v0.2.0.md`，复制内容到说明框。
-6. 点 **Publish release**。
+## 发布 V0.2.1 安装包
 
-创建标签会触发 `.github/workflows/release.yml`。点仓库上方 **Actions**，打开 `Build desktop release` 查看进度。三个构建都变绿后，刷新 Release 页面。
+新版工作流会自己建立草稿、上传全部附件、再发布 Release。不要先在网页手动创建同名 Release，否则安全检查会拒绝覆盖。
 
-## D. 下载哪个安装包
+### 1. 本地最后检查
 
-| 你的电脑 | 下载文件名含有 | 推荐格式 |
+在终端进入项目目录，然后运行：
+
+```bash
+npm ci
+npm run check
+npm audit --audit-level=high
+```
+
+三条都成功后，在 GitHub Desktop 提交全部 V0.2.1 改动并点 **Push origin**。先到 GitHub 网页确认最新提交已经出现。
+
+### 2. 只创建并推送标签
+
+仍在项目目录运行：
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v0.2.1 -m "微信年轮 V0.2.1"
+git push origin v0.2.1
+```
+
+标签必须是全新的，且与 `package.json`、`src/version.js`、`CHANGELOG.md` 和 `docs/releases/v0.2.1.md` 一致。不要移动、覆盖或复用已经发布的标签。
+
+### 3. 等自动构建
+
+打开仓库 **Actions → Build desktop release**。应看到：
+
+- Mac Apple 芯片 arm64：DMG + ZIP
+- Mac Intel x64：DMG + ZIP
+- Windows x64：EXE + ZIP
+- 发布任务：`SHA256SUMS.txt`、GitHub Artifact Attestation、Release
+
+全部变绿后，仓库 Releases 会自动出现 V0.2.1。工作流不会 `--clobber` 已有附件；如果意外留下同名草稿，应先确认它确实由本次失败运行创建，再删除草稿并重新运行，绝不要删除已经公开的正式 Release 来“重传”。
+
+## 用户该下载哪个文件
+
+| 电脑 | 文件名包含 | 推荐 |
 |---|---|---|
-| M1/M2/M3/M4/M5 Mac | `mac-arm64` | `.dmg` |
+| Apple 芯片 Mac（M1 及以后） | `mac-arm64` | `.dmg` |
 | Intel Mac | `mac-x64` | `.dmg` |
-| 64 位 Windows | `win-x64` | `.exe` 安装版或 `.zip` 免安装版 |
+| 64 位 Windows | `win-x64` | `.exe` 安装版或 `.zip` 便携版 |
 
-在 Mac 左上角点苹果图标 → **关于本机**，看到“芯片 Apple M…”就选 arm64；看到“处理器 Intel”就选 x64。
+Mac 左上角 **苹果图标 → 关于本机**：显示“芯片 Apple M…”选 arm64；显示“处理器 Intel”选 x64。
 
-## E. 未签名应用怎么打开
+## 下载后先核对，再打开
 
-V0.2.0 为了保持 0 成本没有购买 Apple Developer 和 Windows 代码签名证书，因此会有系统拦截。
+下载对应安装包和 `SHA256SUMS.txt`。在 Mac 终端进入下载目录：
+
+```bash
+cd ~/Downloads
+shasum -a 256 WeChat-Yearbook-0.2.1-mac-arm64.dmg
+```
+
+把输出与 `SHA256SUMS.txt` 中同名文件那一行比较，必须逐字相同。安装了 GitHub CLI 的用户还可验证构建来源：
+
+```bash
+gh attestation verify WeChat-Yearbook-0.2.1-mac-arm64.dmg -R 你的GitHub用户名/wechat-yearbook
+```
+
+GitHub 官方说明也强调：构建证明能确认文件从哪个源码与工作流产生，但不是“软件绝对安全”的保证；仍要审阅源码、权限和发布账号。
+
+## 未付费签名应用怎么打开
 
 Mac：
 
 1. 打开 DMG，把“微信年轮”拖进 Applications。
-2. 在 Finder 的 Applications 中，按住 Control 点“微信年轮”，选择 **打开**。
-3. 再次点 **打开**。如果按钮没出现，去 **系统设置 → 隐私与安全性**，在拦截提示旁点“仍要打开”。
-4. 不要关闭 SIP，也不需要在终端执行移除隔离属性的命令。
+2. 在 Applications 中按住 Control 点应用，选择 **打开**，再确认一次。
+3. 若没有按钮，到 **系统设置 → 隐私与安全性**，在拦截提示旁点 **仍要打开**。
+4. 不要关闭 SIP，也不需要执行 `xattr -cr`、重签微信或输入管理员密码给本应用。
 
-Windows：
+Windows：SmartScreen 出现时先核对 Release、SHA-256 和构建证明，再点 **更多信息 → 仍要运行**。
 
-1. SmartScreen 出现后点 **更多信息**。
-2. 确认文件来自你自己的 GitHub Release，再点 **仍要运行**。
+## 以后每次更新都要重新发布吗？
 
-开源不等于自动安全。用户应核对仓库地址、Release 标签和 Actions 构建记录。
+是。源码改动不会自动替换用户电脑里的旧应用。每个公开更新都要：
 
-## F. 以后发新版本
+1. 升级版本号，例如 `0.2.2`。
+2. 只记录真正完成并通过测试的更新，准备 `docs/releases/v0.2.2.md`。
+3. 提交并推送源码。
+4. 创建全新标签 `v0.2.2` 并推送。
+5. 等 Actions 生成全新的不可变 Release；用户重新下载安装。
 
-假设下一版是 V0.2.1：
-
-1. 把 `package.json` 的 `version` 改成 `0.2.1`。
-2. 把 `src/version.js` 的 `APP_VERSION` 改成 `0.2.1`。
-3. 在 `CHANGELOG.md` 顶部新增真实完成的内容，并同步应用内 `ChangelogPage`。
-4. GitHub Desktop 填真实摘要并 Commit，再 Push origin。
-5. GitHub 网页新建 tag `v0.2.1` 和 Release。
-
-标签、应用版本和 `package.json` 必须一致。不要先写“已完成”再慢慢做，也不要给从未存在的版本补造 Git 标签。
+当前版本没有静默自动更新器，避免应用在后台下载并替换可执行文件。更新检查以 GitHub Release 为准。
 
 ## 常见失败
 
-### Actions 显示红色叉号
-
-点进失败步骤看第一段红字：
-
-- `Resource not accessible by integration`：回到步骤 B 打开 Read and write permissions。
-- `npm ci` 失败：确认 `package-lock.json` 已上传，并且没有只改 `package.json`。
-- 某个安装包找不到：确认版本号只包含数字和点，重新运行失败任务。
-
-### Release 里暂时没有安装包
-
-刚发布时为空属于正常。等 Actions 三个平台全部完成再刷新。如果只手动运行 workflow 而不是推送 `v*` 标签，流程只构建供检查，不会创建正式 Release。
-
-### Mac 版能不能在 Windows 上打包
-
-本地通常不行，所以这里让 GitHub 的 Mac 运行器打 Mac 包、Windows 运行器打 Windows 包。你的电脑只负责上传源码。
+- `Resource not accessible by integration`：检查 Workflow permissions 是否为 Read and write。
+- `npm ci` 失败：`package.json` 和 `package-lock.json` 没同步，先在本地执行 `npm install`、测试、提交 lockfile。
+- `Release already exists`：网页已经有同名 Release；不要覆盖正式版，改用更高版本号。若仅是本次失败留下的草稿，核实后删除草稿再重跑。
+- Artifact attestation 无权限：仓库需公开，且发布任务需要 `id-token: write` 和 `attestations: write`；本项目工作流已声明。
+- Mac 提示损坏或打不开：先确认架构与哈希；不要关闭 SIP。若 Actions 的 Mac 构建步骤失败，应先修构建，不要绕过系统保护。

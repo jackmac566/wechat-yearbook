@@ -14,5 +14,13 @@ coverage/
 *.sqlite*
 *.wcdb
 微信支付账单*.csv
+*微信支付账单*.csv
+微信年轮-标准数据-*.json
 chat*.json
+chat*.csv
 messages*.json
+messages*.csv
+moments*.json
+moments*.csv
+*-chat.json
+*-chat.csv
