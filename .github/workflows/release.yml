@@ -1,0 +1,89 @@
+name: Build desktop release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            platform: mac
+            arch: arm64
+            artifact: mac-arm64
+          - runner: macos-15-intel
+            platform: mac
+            arch: x64
+            artifact: mac-x64
+          - runner: windows-latest
+            platform: win
+            arch: x64
+            artifact: win-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Build macOS packages
+        if: matrix.platform == 'mac'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+      - name: Build Windows packages
+        if: matrix.platform == 'win'
+        run: npm run dist:win -- --${{ matrix.arch }}
+      - name: Collect macOS assets
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
+          retention-days: 1
+      - name: Collect Windows assets
+        if: matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.exe
+            release/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$REPO" --title "微信年轮 $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" release-assets/* --repo "$REPO" --clobber

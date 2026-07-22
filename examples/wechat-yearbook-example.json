@@ -1,0 +1,14 @@
+{
+  "messages": [
+    { "time": "2025-01-01 09:00:00", "isSend": true, "type": 1, "content": "新年快乐", "contact": "好友" },
+    { "time": "2025-01-01 09:02:00", "isSend": true, "type": 34, "content": "", "contact": "好友", "duration": 12 },
+    { "time": "2025-01-01 09:03:00", "isSend": true, "type": 10000, "content": "你撤回了一条消息", "contact": "好友" }
+  ],
+  "payments": [
+    { "time": "2025-01-01 10:00:00", "type": "红包", "direction": "支出", "amount": 8.88, "counterparty": "好友" }
+  ],
+  "moments": [
+    { "time": "2025-01-02 12:00:00", "type": "post", "isOwn": true, "content": "新年第一条朋友圈" },
+    { "time": "2025-01-03 12:00:00", "type": "comment", "isOwn": true, "content": "好看" }
+  ]
+}

@@ -1,0 +1,34 @@
+name: Bug report
+description: 报告可复现的问题（不要上传真实微信数据）
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "请只使用人工构造的样本。不要提交聊天、账单、数据库、密钥、手机号或设备路径。"
+  - type: dropdown
+    id: system
+    attributes:
+      label: 系统
+      options: [macOS Apple 芯片, macOS Intel, Windows, 网页版]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 微信年轮版本
+      placeholder: 例如 0.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 写清点击顺序、预期结果和实际结果。
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: 脱敏或人工样本
+      description: 可贴最小人工 JSON/CSV；不确定是否含隐私就不要贴。

@@ -1,0 +1,14 @@
+{
+  "name": "微信年轮 · 本地年度分析",
+  "short_name": "微信年轮",
+  "description": "不上传聊天记录的微信年度数据分析工具",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f5f3",
+  "theme_color": "#0f7a5a",
+  "icons": [
+    { "src": "./app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "wechat-yearbook",
+  "version": "0.2.0",
+  "private": true,
+  "description": "本地优先的微信年度数据分析桌面应用",
+  "author": "WeChat Yearbook contributors",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "dev:desktop": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.js",
+    "verify:release": "node scripts/verify-release.mjs",
+    "check": "npm test && npm run verify:release && npm run build",
+    "pack:dir": "npm run build && electron-builder --dir",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
+    "dist:win": "npm run build && electron-builder --win nsis zip"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.3",
+    "concurrently": "10.0.3",
+    "electron": "43.1.1",
+    "electron-builder": "26.15.3",
+    "vite": "8.1.5",
+    "wait-on": "9.0.10"
+  },
+  "build": {
+    "appId": "cn.serkon.wechatyearbook",
+    "productName": "微信年轮",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "artifactName": "WeChat-Yearbook-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "identity": null,
+      "icon": "build/icon.png",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis", "zip"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
