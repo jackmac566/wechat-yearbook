@@ -48,3 +48,13 @@ DMG 文件名固定为 `微信年轮-V0.5.2-Mac候选-arm64.dmg`，两种方式�
 - `index.html` 的版本号、SHA-256、下载链接；
 - `changelog.html` 的新版本条目；
 - 若完成正式签名，删除/更新「临时签名」说明，并同步「仍要打开」指引。
+
+## 当前部署（2026-11-08）
+
+| 目标 | 地址 | 说明 |
+| --- | --- | --- |
+| Cloudflare Pages（主） | https://wechat-yearbook.pages.dev/ | wrangler 直传：`npx wrangler pages deploy site --project-name wechat-yearbook --commit-dirty=true` |
+| GitHub Pages（镜像） | https://jackmac566.github.io/wechat-yearbook/ | Actions 自动部署（.github/workflows/pages.yml，推送到 main 且 site/** 变更时触发） |
+| DMG 下载 | GitHub Releases v0.5.2 | https://github.com/jackmac566/wechat-yearbook/releases/tag/v0.5.2（Pages 单文件上限 25MB，DMG 必须放 Releases 或对象存储） |
+
+更新站点时：改 site/** → `node site/check-links.mjs` 自检 → wrangler 直传 Cloudflare → git push 触发 GitHub Pages 镜像。
