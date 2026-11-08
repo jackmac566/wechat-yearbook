@@ -6,6 +6,7 @@ import { FuseV1Options, getCurrentFuseWire } from "@electron/fuses";
 
 const require = createRequire(import.meta.url);
 const { extractFile, listPackage } = require("@electron/asar");
+const plist = require("plist");
 const root = path.resolve(process.argv[2] || "release");
 const sourceMetadata = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
@@ -33,6 +34,16 @@ function findPackagedApp(directory, depth = 0) {
 
 const packaged = findPackagedApp(root);
 assert.ok(packaged, `在 ${root} 中没有找到已装配的桌面应用`);
+if (packaged.executable.endsWith(".app")) {
+  const contents = path.join(packaged.executable, "Contents");
+  const info = plist.parse(fs.readFileSync(path.join(contents, "Info.plist"), "utf8"));
+  assert.deepEqual(info.CFBundleDocumentTypes?.map(({ CFBundleTypeRole, LSHandlerRank, LSItemContentTypes }) => ({
+    role: CFBundleTypeRole, rank: LSHandlerRank, types: LSItemContentTypes,
+  })), [{ role: "Viewer", rank: "Alternate", types: ["public.zip-archive", "public.plain-text"] }]);
+  const experimental = process.env.YEARBOOK_EXPERIMENTAL_SHARE_EXTENSION === "1";
+  const appex = path.join(contents, "PlugIns", "WeChatYearbookShare.appex");
+  assert.equal(fs.existsSync(appex), experimental, "Mac 共享扩展的打包状态与实验开关不符");
+}
 
 const wire = await getCurrentFuseWire(packaged.executable);
 const disabled = 48;
@@ -46,12 +57,17 @@ assert.equal(wire[FuseV1Options.OnlyLoadAppFromAsar], enabled, "未限制为只�
 assert.equal(wire[FuseV1Options.GrantFileProtocolExtraPrivileges], disabled, "file:// 额外权限未关闭");
 
 const entries = listPackage(packaged.asar).map((entry) => entry.split(path.sep).join("/"));
-for (const required of ["/dist/index.html", "/electron/main.cjs", "/electron/security.cjs", "/package.json"]) {
+for (const required of ["/dist/index.html", "/electron/main.cjs", "/electron/security.cjs", "/electron/document-inbox.cjs", "/electron/preload.cjs", "/package.json"]) {
   assert.ok(entries.includes(required), `安装包缺少 ${required}`);
 }
-for (const forbidden of ["/tests", "/scripts", "/.github", "/electron/preload.cjs"]) {
+for (const forbidden of ["/tests", "/scripts", "/.github"]) {
   assert.ok(!entries.some((entry) => entry === forbidden || entry.startsWith(`${forbidden}/`)), `安装包不应包含 ${forbidden}`);
 }
+// preload.cjs 是收件箱转发的窄接口桥：只允许回调注册与单向数据，
+// 不允许引入 Node 能力。
+const packagedPreload = extractFile(packaged.asar, "electron/preload.cjs").toString("utf8");
+assert.ok(packagedPreload.includes("yearbookInbox") && packagedPreload.includes("ipcRenderer.on"), "preload 未包含收件箱转发接口");
+assert.ok(!packagedPreload.includes("require(\"fs\")") && !packagedPreload.includes("ipcMain"), "preload 引入了不应有的能力");
 assert.ok(!entries.some((entry) => /\.(?:db|sqlite|wcdb|pem|p12|key)$/i.test(entry)), "安装包含敏感数据库或密钥文件");
 
 const packagedMetadata = JSON.parse(extractFile(packaged.asar, "package.json").toString("utf8"));

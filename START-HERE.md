@@ -1,23 +1,25 @@
-# 新手第一步：发布或更新微信年轮
+# 微信年轮 Mac 候选
 
-当前源码版本是 V0.2.1。最省事的路线是：**本地检查 → GitHub Desktop 提交并推送 → 终端推送新标签 → GitHub Actions 自动生成 Release**。
+V0.5.2 面向 Apple 芯片 Mac，已补齐八个板块可视化。先准备 Mac 微信合并转发的 ZIP 或 TXT，也可导入合成样例，选择「测试本人」作为发送人。[合成 TXT](examples/wechat-forward-example.txt)
 
-## 如果仓库已经发布成功
+## 体验报告
 
-不要重新建仓库，也不要手动覆盖 V0.2.0。先阅读 [零成本发布与更新教程](docs/BEGINNER-GITHUB-GUIDE.md)，按其中“发布 V0.2.1 安装包”操作。
+1. 打开微信年轮，点「导入记录」选择文件。
+2. 也可以拖入聊天 ZIP 或 TXT。对照文件中的昵称选择自己，并填写会话名称。导入支付账单时选择解压后的 CSV。
+3. 查看年报或详细数据。分享前可预览 PNG，包含聊天原文的标准 JSON 用于本人备份。
 
-发布前必须确认：
+首页「怎么拿到文件？」提供操作步骤。文件只有选中的消息，年报会标明覆盖范围。[导入格式](docs/DATA-FORMAT.md)
 
-- 项目里没有真实聊天、账单、数据库、密钥或验证码。
-- `npm run check` 与 `npm audit --audit-level=high` 都成功。
-- GitHub 上最新源码提交已经出现。
-- **不要先手动创建 V0.2.1 Release**；只推送 `v0.2.1` 标签，让安全工作流先建草稿、上传附件再发布。
+## 构建候选
 
-## 如果是第一次建仓库
+在 Apple 芯片 Mac 上安装 Node.js 22，然后进入项目目录运行：
 
-1. 用 GitHub Desktop 添加项目目录并创建仓库。
-2. Summary 填真实改动，Commit 后 Publish repository，取消 Keep this code private。
-3. 在 GitHub Settings 打开 Actions 的 Read and write permissions、未来 Release immutability 和 Private vulnerability reporting。
-4. 再按教程创建 `v0.2.1` 标签。
+```sh
+npm ci
+npm run check
+npm audit --audit-level=high
+npm run dist:mac
+npm run verify:packaged -- release/mac-arm64
+```
 
-V0.2.0 起才是可验证的 GitHub 发行记录；V0.1.x 是迁入 GitHub 前的产品原型记录，不要补造旧标签。
+构建产物在 `release/`。本地候选使用临时签名。正式分发需完成 Developer ID 签名、Apple 公证与干净设备的首次安装验收。[分发验收](docs/releases/v0.5.2.md)

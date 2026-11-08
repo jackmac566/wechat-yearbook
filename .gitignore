@@ -1,6 +1,7 @@
 node_modules/
 dist/
 release/
+build/mac-share-extension/WeChatYearbookShare.appex/
 *.log
 .DS_Store
 Thumbs.db

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07c160">
+  <meta name="description" content="微信年轮使用指南：如何取得 Mac 微信合并转发聊天、微信支付个人对账账单与朋友圈记录，以及常见问题。">
+  <title>使用指南 · 微信年轮</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2307c160'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10.5'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#07c160"></circle>
+        <circle cx="16" cy="16" r="10.5" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="2.6" fill="#ffffff"></circle>
+      </svg>
+      微信年轮<span class="ver">V0.5.2</span>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="guide.html" aria-current="page">使用指南</a>
+      <a href="privacy.html">隐私</a>
+      <a href="changelog.html">更新日志</a>
+      <a class="btn btn-primary btn-sm" href="index.html#download">下载</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div class="container">
+      <h1>使用指南</h1>
+      <p class="lead">从取得数据到查看年报。聊天、支付账单、朋友圈三种文件都可以独立开始，也可以一次多选导入。</p>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="container">
+
+      <section class="guide-section">
+        <h2><span class="num-dot">1</span>取得聊天数据（Mac 微信合并转发）</h2>
+        <p class="section-lead">微信年轮回顾的是「你选中的聊天」，覆盖范围取决于你的选区。</p>
+        <ol class="guide-steps">
+          <li>打开 Mac 微信，进入一个会话，<strong>多选</strong>你想回顾的消息，点击「<strong>合并转发</strong>」。</li>
+          <li>选择「<strong>其他应用</strong>」接收原始文件：有微信流时选「<strong>发送到自定义</strong>」保存 ZIP；或使用渡口的「暂存到渡口」入口取得文件（<a href="https://github.com/qzz0518/Dukou#第一次使用" target="_blank" rel="noopener">渡口手动接收指南</a>）。</li>
+          <li>也可以先解压 ZIP，保存其中的 <span class="path">聊天记录.txt</span>，再导入 TXT。</li>
+          <li>把 ZIP 或 TXT <strong>拖进微信年轮</strong>（或点「导入记录」选择文件）。为这份文件确认你的发送人昵称，并填写会话名称。</li>
+        </ol>
+        <div class="note-box">同一会话分批导入时，请填写<strong>同一个</strong>会话名称，报告才能正确合并。已有微信年轮标准 JSON、常见聊天 JSON / CSV 也可以直接导入。</div>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">2</span>取得支付账单（微信支付个人对账 CSV）</h2>
+        <p class="section-lead">红包与转账的笔数、金额与方向，一律以微信支付账单为准。</p>
+        <ol class="guide-steps">
+          <li>手机微信：<strong>我 → 服务 → 钱包 → 账单</strong>，在常见问题里选择「<strong>下载账单</strong>」。</li>
+          <li>账单用途选「<strong>用于个人对账</strong>」，选择你要回顾的<strong>年份</strong>，填写接收邮箱。</li>
+          <li>微信支付会把加密 ZIP 发送到你的邮箱，下载后<strong>解压得到 CSV</strong>，拖进微信年轮导入。</li>
+        </ol>
+        <div class="note-box">聊天里的红包卡片通常不显示金额，因此只作为标记；最终金额与笔数以账单为准，退款与无效交易不计入。官方下载账单入口见<a href="https://posts.tenpay.com/posts/4d1501526a8baf82000881c008b63f1d.html" target="_blank" rel="noopener">财付通官方说明</a>。</div>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">3</span>朋友圈记录（实验功能）</h2>
+        <p class="section-lead">朋友圈统计是实验功能，覆盖有限。</p>
+        <ol class="guide-steps">
+          <li>需要包含时间与本人归属字段（如 <span class="path">isOwn</span>）的 JSON / CSV 文件。</li>
+          <li>导入后，仅统计<strong>有明确本人归属</strong>的记录；无法确认归属的记录不会被计入，并会单独提示未计入数量。</li>
+        </ol>
+        <div class="warn-box">微信年轮不会仅凭电脑缓存声称朋友圈覆盖完整。没有本人归属字段的文件，导入后朋友圈板块会显示为未计入。</div>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">4</span>常见问题</h2>
+        <div class="faq">
+          <details>
+            <summary>为什么不是全账号年报？</summary>
+            <p>因为微信年轮统计的是<strong>你导入的片段</strong>：合并转发只覆盖你选中的消息，账单只覆盖你申请下载的账期。应用不会从云端补齐或猜测没有导入的数据，覆盖范围取决于导入的文件。</p>
+          </details>
+          <details>
+            <summary>覆盖范围怎么看？</summary>
+            <p>在「数据与隐私」页，每个来源都会显示<strong>观察区间、记录条数与覆盖状态</strong>，缺失与实际零值分开标注；年报故事封面也会写明聊天、账单与朋友圈各自的观察区间与来源。</p>
+          </details>
+          <details>
+            <summary>我的数据会去哪里？</summary>
+            <p>留在你的设备里。文件在原位置读取，解析在本机完成，不上传、不登录、不联网分析。退出应用后当前报告会清空；分享图与备份保存在你自己选择的位置。</p>
+          </details>
+          <details>
+            <summary>能否找回已经删除的记录？</summary>
+            <p>不能。彻底删除且没有残留的记录<strong>无法恢复</strong>，应用不会估算或伪造。仍保留系统痕迹的撤回、以及数据中明确存在的删除标记，才会被统计。</p>
+          </details>
+          <details>
+            <summary>升级后需要重新导入吗？</summary>
+            <p><strong>需要</strong>。应用退出后报告会清空，升级到新版本后请重新导入文件；你保存过的分享图和私人备份不受影响，仍可随时重新导入查看。</p>
+          </details>
+          <details>
+            <summary>红包金额为什么以账单为准？</summary>
+            <p>聊天里的红包卡片通常不显示最终金额，只能作为「这里发过红包」的标记；金额与笔数一律以导入的微信支付账单为准。</p>
+          </details>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <p><strong>微信年轮</strong> · 本地优先的微信年度回顾工具（Apple 芯片 Mac）</p>
+        <p>本产品不是腾讯或微信官方产品，「微信」是其权利人的商标。所有统计在本机完成，应用不上传你的数据。</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/jackmac566/wechat-yearbook" target="_blank" rel="noopener">GitHub 仓库（MIT 开源）</a>
+        <a href="index.html">首页</a>
+        <a href="privacy.html">隐私说明</a>
+        <a href="changelog.html">更新日志</a>
+      </div>
+    </div>
+    <p class="disclaimer">© 2026 微信年轮 · 本地计算 · 无追踪 · 无广告</p>
+  </div>
+</footer>
+
+</body>
+</html>

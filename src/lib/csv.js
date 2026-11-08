@@ -11,7 +11,7 @@ export function parseCSV(text) {
     if (char === '"' && quoted && next === '"') {
       cell += '"';
       i += 1;
-    } else if (char === '"') {
+    } else if (char === '"' && (quoted || !cell.trim())) {
       quoted = !quoted;
     } else if (char === "," && !quoted) {
       row.push(cell.trim());
@@ -26,6 +26,7 @@ export function parseCSV(text) {
       cell += char;
     }
   }
+  if (quoted) throw new Error("CSV 中有未闭合的引号，请检查文件是否完整");
   if (cell.length || row.length) {
     row.push(cell.trim());
     if (row.some(Boolean)) rows.push(row);

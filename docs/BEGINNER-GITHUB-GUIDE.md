@@ -1,4 +1,6 @@
-# 零成本发布与更新教程（Mac 新手版）
+# V0.2.x 历史发布流程
+
+这篇文档记录旧版多平台发布。V0.5.0 Apple 芯片 Mac 候选的当前流程见 [Mac 候选指南](../START-HERE.md)。
 
 目标：公开源码，并让 GitHub 自动生成 Apple 芯片 Mac、Intel Mac 和 Windows 安装包。公开仓库使用标准 GitHub 托管运行器通常无需付费；Apple/Windows 商业代码签名仍需费用，所以本项目先用“源码 + 自动构建 + SHA-256 + GitHub 构建证明”建立可验证链路。
 

@@ -24,15 +24,23 @@ test("removes unused macOS permission declarations from packaged metadata", () =
 
 test("desktop shell uses an isolated custom protocol and denies system permissions", () => {
   const source = fs.readFileSync(new URL("../electron/main.cjs", import.meta.url), "utf8");
+  const preloadSource = fs.readFileSync(new URL("../electron/preload.cjs", import.meta.url), "utf8");
   const policySource = fs.readFileSync(new URL("../electron/security.cjs", import.meta.url), "utf8");
   assert.match(source, /app\.enableSandbox\(\)/);
   assert.match(source, /setPermissionRequestHandler/);
   assert.match(source, /setPermissionCheckHandler/);
   assert.match(source, /webRequest\.onBeforeRequest/);
+  assert.match(source, /const assetSession = session\.fromPartition\(/);
+  assert.match(source, /assetSession\.fetch\(pathToFileURL\(filePath\)/);
   assert.match(source, /contextIsolation: true/);
   assert.match(source, /nodeIntegration: false/);
   assert.match(source, /webviewTag: false/);
-  assert.doesNotMatch(source, /preload:/);
+  // 唯一允许的 preload 是收件箱转发桥：仅暴露一个回调注册接口，
+  // 不引入 Node 能力，转发文件数据只从主进程单向流入。
+  assert.match(source, /preload: path\.join\(__dirname, "preload\.cjs"\)/);
+  assert.match(preloadSource, /contextBridge\.exposeInMainWorld\("yearbookInbox"/);
+  assert.match(preloadSource, /ipcRenderer\.on\("yearbook-inbox-files"/);
+  assert.doesNotMatch(preloadSource, /require\("fs"\)|require\("electron"\).(?!\s*$)[\s\S]*ipcMain|ipcMain/);
   assert.match(policySource, /app:\/\/yearbook/);
   assert.doesNotMatch(source, /url\.startsWith\("file:"\)/);
 });

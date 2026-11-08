@@ -1,6 +1,6 @@
 {
   "name": "wechat-yearbook",
-  "version": "0.2.1",
+  "version": "0.5.2",
   "private": true,
   "description": "本地优先的微信年度数据分析桌面应用",
   "author": "WeChat Yearbook contributors",
@@ -16,10 +16,11 @@
     "verify:packaged": "node scripts/verify-packaged.mjs",
     "check": "npm test && npm run verify:release && npm run build",
     "pack:dir": "npm run build && electron-builder --dir",
-    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish=never",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --arm64 --publish=never",
     "dist:win": "npm run build && electron-builder --win nsis zip --publish=never"
   },
   "dependencies": {
+    "@zip.js/zip.js": "2.24.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -27,10 +28,10 @@
     "@electron/asar": "3.4.1",
     "@electron/fuses": "1.8.0",
     "@vitejs/plugin-react": "6.0.4",
-    "electron": "43.2.0",
+    "electron": "43.8.7",
     "electron-builder": "26.15.3",
     "plist": "3.1.0",
-    "vite": "8.1.5"
+    "vite": "8.3.6"
   },
   "build": {
     "appId": "cn.serkon.wechatyearbook",
@@ -61,11 +62,17 @@
       "category": "public.app-category.lifestyle",
       "identity": null,
       "icon": "build/icon.png",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "build/icon.png",
-      "target": ["nsis", "zip"]
+      "target": [
+        "nsis",
+        "zip"
+      ]
     },
     "nsis": {
       "oneClick": false,

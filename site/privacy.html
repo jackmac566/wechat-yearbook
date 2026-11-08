@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07c160">
+  <meta name="description" content="微信年轮隐私说明：本地处理、不上传、不登录、不联网分析；两类导出与安全边界；开源与审计。">
+  <title>隐私说明 · 微信年轮</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2307c160'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10.5'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#07c160"></circle>
+        <circle cx="16" cy="16" r="10.5" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="2.6" fill="#ffffff"></circle>
+      </svg>
+      微信年轮<span class="ver">V0.5.2</span>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="privacy.html" aria-current="page">隐私</a>
+      <a href="changelog.html">更新日志</a>
+      <a class="btn btn-primary btn-sm" href="index.html#download">下载</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div class="container">
+      <h1>隐私说明</h1>
+      <p class="lead">微信年轮在你的设备上读取和计算你导入的文件：不登录、不上传、不联网分析。生效版本 V0.5.2。</p>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="container">
+
+      <section class="guide-section">
+        <h2><span class="num-dot">1</span>本地处理</h2>
+        <ul class="guide-steps">
+          <li>文件由你通过系统选择器、拖放或 Finder 的「打开方式」<strong>主动选择</strong>；应用不把原文件复制到自己的数据目录。</li>
+          <li>文件解析在<strong>本地后台线程</strong>完成，统计、图表与分享图只在本机生成。</li>
+          <li>退出应用后当前报告会清空；分享图与备份留在你自己选择的位置。</li>
+          <li>当前版本<strong>没有</strong>遥测、广告 SDK、第三方统计或云端 AI 接口；核心报告不需要联网。</li>
+        </ul>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">2</span>两类导出，请分清用途</h2>
+        <ul class="guide-steps">
+          <li><strong>脱敏分享图（PNG）</strong>：只包含汇总数量，默认隐藏昵称、群名、聊天原文与具体金额，适合公开分享；公开发布前请自行检查图片。</li>
+          <li><strong>含原文的 JSON 备份</strong>：包含聊天内容与联系人，<strong>只适合自己备份</strong>，请勿提交到 GitHub、上传公开网盘或发送给陌生人。</li>
+        </ul>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">3</span>安全边界</h2>
+        <ul class="guide-steps">
+          <li><strong>不扫描微信进程、不读取微信本地数据库、不提取任何密钥</strong>；不要求微信账号、密码或支付密码。</li>
+          <li>桌面壳拒绝相机、麦克风、蓝牙等未使用的系统权限与未知网址；只有你主动点击白名单内的 GitHub 链接时，才交给系统默认浏览器打开。</li>
+          <li>不分析他人账号，不提供监控、窃取或绕过系统保护的能力。</li>
+        </ul>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">4</span>请妥善保管敏感文件</h2>
+        <p class="section-lead">聊天导出与微信年轮标准 JSON 可能包含联系人、群名、消息内容、时间与删除标记；支付账单可能包含交易对方与金额。</p>
+        <div class="warn-box">这些文件是你的私人数据。请保存在自己的设备里，不要提交到代码仓库、公开网盘或发送给陌生人。</div>
+      </section>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">5</span>开源与审计</h2>
+        <ul class="guide-steps">
+          <li><strong>MIT 开源</strong>：代码公开在 <a href="https://github.com/jackmac566/wechat-yearbook" target="_blank" rel="noopener">GitHub 仓库</a>，可以自行阅读、构建与检查。</li>
+          <li><strong>依赖审计</strong>：发布时 <span class="path">npm audit</span> 为 0 个已知漏洞，依赖版本锁定。</li>
+          <li><strong>SHA-256 校验</strong>：下载页提供 DMG 的 SHA-256，可在本机用 <span class="path">shasum -a 256 文件名</span> 核对；构建产物附带构建来源证明。</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <p><strong>微信年轮</strong> · 本地优先的微信年度回顾工具（Apple 芯片 Mac）</p>
+        <p>本产品不是腾讯或微信官方产品，「微信」是其权利人的商标。所有统计在本机完成，应用不上传你的数据。</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/jackmac566/wechat-yearbook" target="_blank" rel="noopener">GitHub 仓库（MIT 开源）</a>
+        <a href="index.html">首页</a>
+        <a href="guide.html">使用指南</a>
+        <a href="changelog.html">更新日志</a>
+      </div>
+    </div>
+    <p class="disclaimer">© 2026 微信年轮 · 本地计算 · 无追踪 · 无广告</p>
+  </div>
+</footer>
+
+</body>
+</html>

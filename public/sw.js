@@ -1,4 +1,4 @@
-const CACHE = "wechat-yearbook-v5";
+const CACHE = "wechat-yearbook-v8";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./app-icon.svg"];
 
 self.addEventListener("install", (event) => {

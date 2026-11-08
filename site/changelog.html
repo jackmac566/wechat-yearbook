@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07c160">
+  <meta name="description" content="微信年轮更新日志：V0.5.2 至 V0.3.0 的版本变化、兼容范围与已知限制。">
+  <title>更新日志 · 微信年轮</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2307c160'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10.5'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='6'%20fill='none'%20stroke='%23fff'%20stroke-width='2.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#07c160"></circle>
+        <circle cx="16" cy="16" r="10.5" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#ffffff" stroke-width="2.4"></circle>
+        <circle cx="16" cy="16" r="2.6" fill="#ffffff"></circle>
+      </svg>
+      微信年轮<span class="ver">V0.5.2</span>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="privacy.html">隐私</a>
+      <a href="changelog.html" aria-current="page">更新日志</a>
+      <a class="btn btn-primary btn-sm" href="index.html#download">下载</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div class="container">
+      <h1>更新日志</h1>
+      <p class="lead">当前版本 V0.5.2 · Apple 芯片（arm64）Mac 候选。更早版本与完整记录见 GitHub 仓库的 <a href="https://github.com/jackmac566/wechat-yearbook/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>。</p>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="container">
+      <div class="versions">
+
+        <section class="version">
+          <h2>V0.5.2<span class="tag-new">当前</span></h2>
+          <p class="date">2026-11-08</p>
+          <ul>
+            <li>聊天里的红包标记与支付账单分开展示：标记来自聊天记录，金额与笔数来自账单。</li>
+            <li>红包与转账页可直接打开账单获取指引，并按日期查询发出的红包明细。</li>
+            <li>聊天标记不与账单交易自动匹配，退款与无效交易不计入金额。</li>
+          </ul>
+        </section>
+
+        <section class="version">
+          <h2>V0.5.1</h2>
+          <p class="date">2026-11-08</p>
+          <ul>
+            <li>首页直接选择或拖入文件，文件导入成为主流程；获取指引与示例按需打开。</li>
+            <li>年报按各来源的记录日期与数量展示；优化全年热图、收发图表与缺失状态。</li>
+            <li>脱敏分享图与含原文的私人备份分成两个独立的导出区。</li>
+          </ul>
+        </section>
+
+        <section class="version">
+          <h2>V0.5.0</h2>
+          <p class="date">2026-11-08</p>
+          <ul>
+            <li>实验候选：验证 macOS 文件接收。</li>
+            <li>内置分享入口尚未通过微信实机菜单验收，常规包以文件导入为主。</li>
+          </ul>
+        </section>
+
+        <section class="version">
+          <h2>V0.4.0</h2>
+          <p class="date">2026-11-08</p>
+          <ul>
+            <li>Apple 芯片 Mac 本地候选，八个板块可视化补齐。</li>
+            <li>年报故事封面写明聊天、账单与朋友圈各自的观察区间、记录数与覆盖状态；只展开有证据的章节。</li>
+          </ul>
+        </section>
+
+        <section class="version">
+          <h2>V0.3.0</h2>
+          <p class="date">2026-11-08</p>
+          <ul>
+            <li>Apple 芯片 Mac 本地候选：支持导入 Mac 微信原始合并转发 ZIP 或聊天 TXT。</li>
+            <li>逐文件确认本人昵称与会话名称；报告与分享图标明转发片段。</li>
+          </ul>
+        </section>
+
+      </div>
+
+      <section class="guide-section">
+        <h2><span class="num-dot">i</span>兼容范围与已知限制</h2>
+        <p class="section-lead">兼容：Apple 芯片（arm64）Mac，macOS 14 或更高。以下限制也会随时间改进，请以本页与<a href="index.html#honest">首页诚实说明</a>为准。</p>
+        <ul class="guide-steps">
+          <li>只统计你导入的片段，不是全账号年报；覆盖范围取决于导入的文件。</li>
+          <li>朋友圈仅统计有明确本人归属的记录，覆盖可能不完整。</li>
+          <li>聊天红包卡片不统计金额，金额与笔数以微信支付账单为准。</li>
+          <li>旧备份缺少方向字段时无法逆推发出 / 收到。</li>
+          <li>彻底删除且无残留的记录无法恢复，不会被估算或伪造。</li>
+          <li>升级后需要重新导入文件（保存过的分享图与备份不受影响）。</li>
+          <li>当前 DMG 为临时签名，首次打开若被拦截请右键选择「打开」，或在「系统设置 → 隐私与安全性」中点击「仍要打开」；正式签名后官网会更新。</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <p><strong>微信年轮</strong> · 本地优先的微信年度回顾工具（Apple 芯片 Mac）</p>
+        <p>本产品不是腾讯或微信官方产品，「微信」是其权利人的商标。所有统计在本机完成，应用不上传你的数据。</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/jackmac566/wechat-yearbook" target="_blank" rel="noopener">GitHub 仓库（MIT 开源）</a>
+        <a href="index.html">首页</a>
+        <a href="guide.html">使用指南</a>
+        <a href="privacy.html">隐私说明</a>
+      </div>
+    </div>
+    <p class="disclaimer">© 2026 微信年轮 · 本地计算 · 无追踪 · 无广告</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -82,6 +82,70 @@ test("exports and reimports the versioned WeChat Yearbook JSON schema", () => {
   assert.equal(restored.messages[0].deletedMarker, true);
 });
 
+test("keeps unknown message direction separate from explicit sent and received directions", () => {
+  const messages = [
+    {},
+    { isSend: "unspecified" },
+    { sender: "只有昵称" },
+    { isSend: null, sender: "我" },
+    { isSend: "0" },
+    { direction: "outgoing" },
+    { fromMe: false },
+  ].map((fields) => ({ time: "2025-04-05 13:00:00", type: 1, content: "示例", ...fields }));
+  const data = parseImport("directions.json", JSON.stringify({ messages }));
+  const expected = [null, null, null, null, false, true, false];
+  assert.deepEqual(data.messages.map(({ isSend }) => isSend), expected);
+  const stats = analyze(data, 2025);
+  assert.deepEqual([stats.sent, stats.received, stats.directionUnknown], [1, 2, 4]);
+  const exported = serializeDataset(data);
+  assert.deepEqual(JSON.parse(exported).messages.map(({ isSend }) => isSend), expected);
+  assert.deepEqual(parseImport("backup.json", exported).messages.map(({ isSend }) => isSend), expected);
+});
+
+test("counts legacy directionless messages as unknown without touching received counts", () => {
+  const data = parseImport("legacy.json", JSON.stringify({ messages: [
+    { time: "2025-04-05 13:00:00", type: 1, content: "旧格式没有方向字段", contact: "旧会话" },
+    { time: "2025-04-05 13:01:00", type: 1, content: "旧备份明确存了收到", contact: "旧会话", isSend: false },
+    { time: "2025-04-05 13:02:00", type: 1, content: "旧备份明确存了发出", contact: "旧会话", isSend: true },
+  ] }));
+  assert.deepEqual(data.messages.map(({ isSend }) => isSend), [null, false, true]);
+
+  const stats = analyze(data, 2025);
+  assert.deepEqual([stats.sent, stats.received, stats.directionUnknown], [1, 1, 1]);
+  const day = stats.dailyCounts.find((item) => item.date === "2025-04-05");
+  assert.deepEqual([day.sent, day.received, day.unknown], [1, 1, 1]);
+  assert.equal(stats.receivedMonthCounts[3], 1);
+  assert.equal(stats.receivedHourCounts[13], 1);
+  assert.deepEqual([stats.conversations[0].sent, stats.conversations[0].received, stats.conversations[0].unknown], [1, 1, 1]);
+
+  const restored = parseImport("yearbook.json", serializeDataset(data));
+  assert.equal(restored.source, "微信年轮标准 JSON");
+  assert.deepEqual(restored.messages.map(({ isSend }) => isSend), [null, false, true]);
+  assert.deepEqual([analyze(restored, 2025).sent, analyze(restored, 2025).received, analyze(restored, 2025).directionUnknown], [1, 1, 1]);
+});
+
+test("distinguishes missing CSV flags while retaining explicitly known legacy sender labels", () => {
+  const messages = parseImport("directions.csv", [
+    "时间,发送者,是否发送,内容",
+    "2025-04-05 13:00:00,, ,示例",
+    "2025-04-05 13:01:00,我,,示例",
+    "2025-04-05 13:02:00,旧导出对方,,示例",
+    "2025-04-05 13:03:00,旧导出对方,不明,示例",
+    "2025-04-05 13:04:00,,否,示例",
+  ].join("\n")).messages;
+  assert.deepEqual(messages.map(({ isSend }) => isSend), [null, true, false, null, false]);
+});
+
+test("does not replace a known direction with unknown when reimporting the same stable message", () => {
+  const message = { id: "123", contact: "示例会话", time: "2025-04-05 13:00:00", content: "示例" };
+  const known = parseImport("known.json", JSON.stringify({ messages: [{ ...message, isSend: false }] }));
+  const unknown = parseImport("unknown.json", JSON.stringify({ messages: [message] }));
+  for (const merged of [mergeDatasets(known, unknown), mergeDatasets(unknown, known)]) {
+    assert.equal(merged.messages.length, 1);
+    assert.equal(merged.messages[0].isSend, false);
+  }
+});
+
 test("keeps payment categories and totals through a standard JSON round trip", () => {
   const source = parseImport("微信支付账单.csv", `微信支付账单明细,,,,\n交易时间,交易类型,交易对方,商品,收/支,金额(元),当前状态\n2025-02-01 10:30:00,微信红包,小王,红包,支出,¥12.50,支付成功\n2025-02-02 11:00:00,转账,小李,转账,支出,¥300.00,支付成功`);
   const restored = parseImport("yearbook.json", serializeDataset(source));
@@ -199,4 +263,99 @@ test("keeps a local-day streak across daylight-saving clock changes", () => {
     { time: "2025-03-10 10:00:00", isSend: true, type: 1, content: "三", contact: "朋友" },
   ] }));
   assert.equal(analyze(data, 2025).streak, 3);
+});
+
+test("keeps ordinary chat text out of recall and card statistics", () => {
+  const rows = [
+    { type: 1, content: "我撤回了刚才的提议" },
+    { type: "text", content: "你撤回了一条消息" },
+    { type: "文字", content: "下次转账和红包记得 call 我" },
+    { content: "application" },
+    { type: "file", content: "年度汇总" },
+    { type: 49, content: "<appmsg><type>2000</type></appmsg>" },
+    { type: 10002, content: "<sysmsg type=\"pat\"><pat/></sysmsg>" },
+    { type: 10002, content: "<sysmsg type=\"other\"/>" },
+    { type: 10000, content: "你撤回了一条消息" },
+  ].map((row) => ({ time: "2025-06-01 12:00:00", isSend: true, ...row }));
+  const data = parseImport("messages.json", JSON.stringify({ messages: rows }));
+  assert.deepEqual(data.messages.map((row) => row.type), ["text", "text", "text", "text", "file", "transfer", "poke", "system", "revoke"]);
+  assert.equal(analyze(data, 2025).ownRevokes, 1);
+});
+
+test("uses the enclosing conversation and reports malformed JSON chat rows", () => {
+  const raw = { Sessions: [{
+    Name: "工作群",
+    Type: "group",
+    CreateTime: "2025-01-01 08:00:00",
+    Messages: [
+      { Time: "2025-01-01 09:00:00", Sender: "甲", Content: "收到" },
+      { Time: "2025-01-01 09:01:00", Sender: "我", Content: "好的" },
+      { Sender: "乙", Content: "缺少时间" },
+      null,
+    ],
+  }] };
+  const data = parseImport("聊天记录.json", `\uFEFF${JSON.stringify(raw)}`);
+  assert.deepEqual(data.messages.map((message) => [message.contact, message.isSend]), [["工作群", false], ["工作群", true]]);
+  assert.deepEqual(data.diagnostics[0], { file: "聊天记录.json", kind: "结构化数据", parsed: 2, skipped: 2 });
+});
+
+test("merges repeated imports without deleting legitimate matching rows in one file", () => {
+  const time = "2025-06-01 12:00:00";
+  const chat = { time, type: "text", content: "好", isSend: true };
+  const transfer = { time, type: "transfer", direction: "out", amount: 10 };
+  const comment = { time, type: "comment", isOwn: true, content: "赞" };
+  const data = parseImport("backup.json", JSON.stringify({
+    messages: [chat, { ...chat, isSend: false }, chat],
+    payments: [transfer, { ...transfer, direction: "in" }],
+    moments: [comment, { ...comment, isOwn: false }],
+  }));
+  const merged = mergeDatasets(data, data);
+  assert.deepEqual(merged.messages.map((message) => message.isSend), [true, false, true]);
+  assert.deepEqual(merged.payments.map((payment) => payment.direction), ["out", "in"]);
+  assert.deepEqual(merged.moments.map((moment) => moment.isOwn), [true, false]);
+});
+
+test("uses only the WeChat bill preamble to establish a declared range", () => {
+  const header = "交易时间,交易类型,交易对方,商品,收/支,金额(元),当前状态";
+  const row = "2025-01-01 00:00:00,转账,甲,开始2025-01-01 结束2025-12-31 23:59:59,支出,10,支付成功";
+  const data = parseImport("bill.csv", `${header}\n${row}`);
+  assert.deepEqual(data.coverageRanges.payments, []);
+  assert.equal(coverage(data, 2025).payments.level, "partial");
+});
+
+test("validates date-only bill ranges and skips malformed amounts", () => {
+  const header = "交易时间,交易类型,交易对方,商品,收/支,金额(元),当前状态";
+  const dates = "起始时间：[2025-01-01] 终止时间：[2025-12-31]";
+  const row = '2025-06-01 00:00:00,转账,甲,测试,支出,"￥1,234.50",支付成功';
+  const valid = parseImport("bill.csv", `${dates}\n${header}\n${row}`);
+  assert.equal(coverage(valid, 2025).payments.level, "complete");
+  assert.equal(analyze(valid, 2025).transferSentAmount, "1234.50");
+  const malformed = parseImport("bill.csv", `${dates}\n${header}\n${row}\n${row.replace('"￥1,234.50"', "金额缺失")}`);
+  assert.equal(malformed.diagnostics[0].skipped, 1);
+  assert.equal(coverage(malformed, 2025).payments.level, "partial");
+  assert.equal(analyze(malformed, 2025).transferSentCount, 1);
+  const backup = JSON.parse(serializeDataset(valid));
+  backup.payments.push({ ...backup.payments[0], amount: "金额缺失" });
+  const restored = parseImport("damaged-backup.json", JSON.stringify(backup));
+  assert.equal(restored.diagnostics[0].skipped, 1);
+  assert.equal(coverage(restored, 2025).payments.level, "partial");
+});
+
+test("preserves literal chat quotes and rejects a truncated quoted CSV field", () => {
+  const header = "时间,类型,内容";
+  const bare = '2025-06-01 12:00:00,文字,他说"你好"';
+  const quoted = '2025-06-01 12:00:01,文字,"他说""你好"", 接着说再见"';
+  const data = parseImport("chat.csv", `${header}\n${bare}\n${quoted}`);
+  assert.deepEqual(data.messages.map((row) => row.content), ['他说"你好"', '他说"你好", 接着说再见']);
+  assert.throws(() => parseImport("chat.csv", `${header}\n2025-06-01 12:00:00,文字,"未闭合`), /未闭合/);
+});
+
+test("reports all-invalid rows and accepts only text warnings from a backup", () => {
+  const messages = [{ type: "text", content: "时间缺失" }];
+  assert.throws(() => parseImport("chat.json", JSON.stringify({ messages })), /1 条已跳过/);
+  const parsed = parseImport("backup.json", JSON.stringify({
+    schemaVersion: "1.0",
+    warnings: ["合成样例提醒", " ", null, { unexpected: "object" }],
+  }));
+  assert.deepEqual(parsed.warnings, ["合成样例提醒"]);
 });

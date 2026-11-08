@@ -1,6 +1,12 @@
 # 第三方项目与参考说明
 
-微信年轮 V0.2.1 是独立实现。以下项目帮助我们理解用户需求、架构取舍和安全边界，但本版本没有复制或捆绑它们的取密钥、解密或数据库读取代码。
+微信年轮是独立实现。以下为随应用分发的依赖与研究参考。
+
+## zip.js
+
+微信年轮使用 `@zip.js/zip.js` 读取用户选择的 ZIP 中的聊天文本。BSD 3-Clause 许可证随安装包分发。
+
+[项目源码](https://github.com/gildas-lormeau/zip.js) · [完整许可证](public/ZIP-JS-LICENSE.txt)
 
 ## EchoTrace
 

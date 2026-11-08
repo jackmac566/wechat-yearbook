@@ -1,0 +1,141 @@
+/* 微信年轮 · 详细总览 / 聊天轨迹 / 关系温度 面板样式。
+   全部使用 dp- 前缀，避免与 styles.css 冲突；基础类（panel、detail-grid、hero-card 等）复用 styles.css。
+   接线注意：App.jsx 引入这三个面板组件时，需要一并 import 本文件（例如 import "./components/detail-panels.css"）。 */
+
+/* ===== 详细总览：双系列月度图 ===== */
+.dp-month-panel .dp-legend { display: flex; gap: 16px; margin: -8px 0 6px; font-size: 11px; color: #71827d; }
+.dp-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dp-legend i { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.dp-legend .dp-sent { background: #1c9b76; }
+.dp-legend .dp-recv { background: #5b8def; }
+.dp-month-chart { height: 205px; display: flex; align-items: stretch; gap: 8px; border-bottom: 1px solid #edf1ef; padding-top: 20px; }
+.dp-month-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; height: 100%; position: relative; }
+.dp-month-bars { flex: 1; width: min(32px, 84%); display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+.dp-month-unobserved { color: #6c8179; font-size: 12px; line-height: 1; }
+.dp-track { width: 42%; height: 100%; display: flex; align-items: flex-end; border-radius: 4px 4px 1px 1px; background: rgba(235, 241, 238, .65); }
+.dp-track i { width: 100%; min-height: 3px; display: block; border-radius: 4px 4px 1px 1px; }
+.dp-track .dp-sent { background: linear-gradient(#58bea0, #11815f); box-shadow: 0 6px 12px rgba(17, 129, 95, .1); }
+.dp-track .dp-recv { background: linear-gradient(#8fb2ef, #4a78d6); box-shadow: 0 6px 12px rgba(74, 120, 214, .12); }
+.dp-month-col b { color: #84948e; font-size: 11px; padding: 10px 0 2px; font-weight: 500; }
+.dp-bar-value { position: absolute; top: 1px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #8c9b96; opacity: 0; transition: .2s; white-space: nowrap; pointer-events: none; }
+.dp-month-col:hover .dp-bar-value { opacity: 1; }
+
+/* ===== 详细总览：观察区间与记录数 ===== */
+.dp-range-row { display: grid; grid-template-columns: minmax(230px, 1.25fr) 110px 170px 84px; align-items: center; gap: 12px; padding: 13px 4px; border-bottom: 1px solid #edf1ef; }
+.dp-range-row:last-child { border-bottom: 0; }
+.dp-range-name { display: grid; grid-template-columns: 9px 64px 1fr; align-items: center; gap: 8px; min-width: 0; }
+.dp-range-name b { font-size: 12px; color: #2c5146; }
+.dp-range-name small { font-size: 11px; color: #758780; line-height: 1.5; }
+.dp-range-row em { font-style: normal; font-size: 11px; color: #1d6752; }
+.dp-range-dates { font-size: 11px; color: #667872; }
+.dp-range-row > strong { font-size: 11px; text-align: right; }
+
+/* ===== 聊天轨迹：GitHub 风格日历热力图 ===== */
+.dp-cal-panel { overflow: hidden; }
+.dp-cal-scroll { overflow-x: auto; }
+.dp-cal-main { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 3px 7px; min-width: 640px; }
+.dp-cal-months { display: grid; gap: 3px; min-width: 0; }
+.dp-cal-months span { font-size: 10px; color: #93a09b; white-space: nowrap; }
+.dp-cal-weekdays { display: flex; flex-direction: column; gap: 3px; }
+.dp-cal-weekdays span { flex: 1; font-size: 10px; color: #a3aeaa; display: flex; align-items: center; justify-content: center; }
+.dp-cal-weeks { display: grid; gap: 3px; min-width: 0; }
+.dp-cal-week { display: flex; flex-direction: column; gap: 3px; }
+.dp-cal-day { aspect-ratio: 1 / 1; width: 100%; border-radius: 3px; background: #eef2f0; }
+.dp-cal-day.lv1 { background: #d3ecdf; }
+.dp-cal-day.lv2 { background: #95d3b5; }
+.dp-cal-day.lv3 { background: #43a37c; }
+.dp-cal-day.lv4 { background: #116f52; }
+.dp-cal-day.pad { background: transparent; }
+.dp-cal-day.peak { outline: 2px solid #f0a94c; outline-offset: 1px; box-shadow: 0 0 0 3px rgba(240, 169, 76, .28); position: relative; z-index: 1; }
+.dp-cal-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 14px; padding-top: 13px; border-top: 1px solid #edf1ef; flex-wrap: wrap; }
+.dp-cal-legend { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8d9a95; }
+.dp-cal-legend i { width: 11px; height: 11px; border-radius: 3px; background: #eef2f0; margin: 0 2px; }
+.dp-cal-legend i.lv1 { background: #d3ecdf; }
+.dp-cal-legend i.lv2 { background: #95d3b5; }
+.dp-cal-legend i.lv3 { background: #43a37c; }
+.dp-cal-legend i.lv4 { background: #116f52; }
+.dp-cal-day.unobserved, .dp-cal-legend i.unobserved { background: #fbfdfc; border: 1px dashed #c7d2cd; }
+.dp-peak-note { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #765f31; background: #fff8ea; border: 1px solid #eee2c7; border-radius: 10px; padding: 8px 12px; }
+.dp-peak-note b { color: #6a4a12; }
+.dp-peak-note i { width: 9px; height: 9px; border-radius: 50%; background: #f0a94c; box-shadow: 0 0 0 3px rgba(240, 169, 76, .25); flex: 0 0 auto; }
+
+/* ===== 聊天轨迹：时段切换柱状图 ===== */
+.dp-hour-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.dp-hour-head .panel-head { margin-bottom: 0; }
+.dp-hour-toggle { display: inline-flex; padding: 3px; background: #eef3f1; border-radius: 10px; gap: 2px; }
+.dp-hour-toggle button { border: 0; background: transparent; color: #6d8079; font-size: 12px; padding: 6px 14px; border-radius: 8px; }
+.dp-hour-toggle button:hover { color: #167a5b; }
+.dp-hour-toggle button.active { background: #fff; color: #167a5b; font-weight: 700; box-shadow: 0 2px 6px rgba(35, 74, 61, .1); }
+.hour-chart.dp-recv i { background: #b7cdf0; }
+.hour-chart.dp-recv .peak i { background: #4a78d6; box-shadow: 0 0 0 3px #e8effb; }
+.dp-hour-peak { margin: 10px 0 0; font-size: 12px; color: #8d9a95; }
+.dp-hour-peak b { color: #176f55; }
+
+/* ===== 聊天轨迹：工作日 / 周末 / 深夜对比卡 ===== */
+.dp-time-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.dp-time-card { border: 1px solid #e8eeeb; border-radius: 14px; padding: 16px; background: #fbfdfc; }
+.dp-time-card header { display: flex; align-items: baseline; gap: 8px; }
+.dp-time-card header b { font-size: 13px; color: #26493e; }
+.dp-time-card header small { font-size: 11px; color: #96a39e; }
+.dp-time-card header em { margin-left: auto; font-style: normal; font-size: 12px; color: #4a645b; font-weight: 700; }
+.dp-time-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.dp-time-bars span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #71827d; }
+.dp-time-bars i { font-style: normal; width: 34px; }
+.dp-time-bars b { margin-left: auto; color: #2c5146; }
+.dp-time-track { position: relative; height: 6px; margin-top: 12px; background: #edf2ef; border-radius: 4px; overflow: hidden; }
+.dp-time-track u { position: absolute; top: 0; bottom: 0; border-radius: 4px; text-decoration: none; }
+.dp-time-track .dp-sent { background: linear-gradient(90deg, #319475, #79c5aa); }
+.dp-time-track .dp-recv { background: linear-gradient(90deg, #4a78d6, #8fb2ef); }
+
+/* ===== 聊天轨迹：方向未知提示 ===== */
+.dp-unknown-panel { display: flex; align-items: center; gap: 20px; background: #fffaf0; border-color: #eee2c7; }
+.dp-unknown-panel .dp-unknown-number { font-size: 44px; font-weight: 800; color: #a3791f; letter-spacing: -.03em; flex: 0 0 auto; min-width: 120px; text-align: center; }
+.dp-unknown-panel b { font-size: 13px; color: #6a4a12; }
+.dp-unknown-panel p { margin: 6px 0 0; color: #8e794d; font-size: 12px; line-height: 1.7; }
+
+/* ===== 关系温度：双向互动排行 ===== */
+.dp-people-legend { display: flex; gap: 16px; font-size: 11px; color: #71827d; margin: -8px 0 12px; flex-wrap: wrap; }
+.dp-people-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dp-people-legend i { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.dp-people-legend .dp-sent { background: #319475; }
+.dp-people-legend .dp-recv { background: #5b8def; }
+.dp-people-list { display: flex; flex-direction: column; }
+.dp-person-row { display: grid; grid-template-columns: 22px 36px minmax(120px, .95fr) minmax(170px, 1.15fr) 168px 60px; gap: 12px; align-items: center; padding: 13px 4px; border-bottom: 1px solid #edf1ef; }
+.dp-person-row:last-child { border-bottom: 0; }
+.dp-rank { font-size: 12px; font-style: normal; color: #9da9a4; }
+.dp-person-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dp-person-name b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-person-name small { font-size: 11px; color: #8d9a95; white-space: nowrap; }
+.dp-person-bars { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.dp-dual-track { position: relative; height: 6px; background: #edf2ef; border-radius: 4px; overflow: hidden; }
+.dp-dual-track i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.dp-dual-track .dp-sent { background: linear-gradient(90deg, #319475, #79c5aa); }
+.dp-dual-track .dp-recv { background: linear-gradient(90deg, #4a78d6, #8fb2ef); }
+.dp-dual-nums { display: flex; gap: 10px; font-size: 11px; color: #758780; flex-wrap: wrap; }
+.dp-dual-nums .dp-sent { color: #1d7a5c; }
+.dp-dual-nums .dp-recv { color: #4169a8; }
+.dp-dual-nums .dp-unknown { color: #a3791f; }
+.dp-person-months { display: flex; gap: 3px; height: 32px; align-items: flex-end; }
+.dp-mini-month { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+.dp-mini-track { width: 100%; height: 100%; background: #f0f4f2; border-radius: 2px; display: flex; align-items: flex-end; overflow: hidden; }
+.dp-mini-track u { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; text-decoration: none; }
+.dp-mini-track b { display: block; width: 100%; }
+.dp-mini-track .dp-sent { background: #57ad91; }
+.dp-mini-track .dp-recv { background: #7fa3e8; }
+.dp-time-track .dp-unknown, .dp-dual-track .dp-unknown, .dp-people-legend .dp-unknown, .dp-mini-track .dp-unknown { background: #d3a344; }
+.dp-person-total { font-size: 12px; text-align: right; white-space: nowrap; }
+.dp-person-total small { font-size: 11px; color: #9aa6a2; font-weight: 400; }
+
+@media (max-width: 820px) {
+  .dp-range-row { grid-template-columns: 1fr auto auto; }
+  .dp-range-dates { grid-column: 1 / -1; grid-row: 2; padding-left: 17px; }
+  .dp-range-row > strong { grid-column: 3; grid-row: 1; }
+  .dp-time-cards { grid-template-columns: 1fr; }
+  .dp-unknown-panel { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .dp-unknown-panel .dp-unknown-number { min-width: 0; text-align: left; }
+  .dp-person-row { grid-template-columns: 22px 36px 1fr 64px; }
+  .dp-person-bars { grid-column: 3 / -1; grid-row: 2; }
+  .dp-person-total { grid-column: 4; grid-row: 1; }
+  .dp-person-months { grid-column: 3 / -1; grid-row: 3; height: 24px; }
+  .dp-people-legend span:last-child { display: none; }
+}
